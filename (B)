@@ -1,0 +1,88 @@
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+class Library {
+    private Queue<String> sQueue;
+    private Queue<String> tQueue;
+    private Lock lock;
+    private Condition sCondition;
+    private Condition tCondition;
+
+    public Library() {
+        sQueue = new LinkedList<>();
+        tQueue = new LinkedList<>();
+        lock = new ReentrantLock();
+        sCondition = lock.newCondition();
+        tCondition = lock.newCondition();
+    }
+
+    public void enter(String personType, String personName) {
+        lock.lock();
+        try {
+            if (personType.equals("student")) {
+                sQueue.add(personName);
+                System.out.println(personName + " (student) entered the library and joined the student queue.");
+            } else if (personType.equals("teacher")) {
+                tQueue.add(personName);
+                System.out.println(personName + " (teacher) entered the library and joined the teacher queue.");
+            }
+            processQueue();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void processQueue() {
+        while (!sQueue.isEmpty() || !tQueue.isEmpty()) {
+            if (!tQueue.isEmpty()) {
+                System.out.println(tQueue.peek() + " (teacher) is being served.");
+                tQueue.poll();
+            } else if (!sQueue.isEmpty()) {
+                System.out.println(sQueue.peek() + " (student) is being served.");
+                sQueue.poll();
+            }
+          
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+class Person extends Thread {
+    private String name;
+    private String type;
+    private Library library;
+
+    public Person(String name, String type, Library library) {
+        this.name = name;
+        this.type = type;
+        this.library = library;
+    }
+
+    @Override
+    public void run() {
+        library.enter(type, name);
+    }
+}
+
+public class LibrarySystem {
+    public static void main(String[] args) {
+        Library library = new Library();
+
+        Person s1 = new Person("Naman", "student", library);
+        Person t1 = new Person("Akshit", "teacher", library);
+        Person t2 = new Person("Malika", "teacher", library);
+        Person s2 = new Person("Virat", "student", library);
+
+        s1.start();
+        t1.start();
+        t2.start();
+        s2.start();
+    }
+}
