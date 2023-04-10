@@ -1,0 +1,106 @@
+public class Assignment {
+
+   
+    static String[] table = new String[2];
+
+   
+    static boolean hasPen = false;
+    static boolean hasPaper = false;
+    static boolean hasQuestionPaper = false;
+
+    public static void main(String[] args) {
+        Thread s1 = new Thread(new Student("Pen"));
+        s1.start();
+
+        Thread s2 = new Thread(new Student("Paper"));
+        s2.start();
+
+        Thread s3 = new Thread(new Student("Question Paper"));
+        s3.start();
+        Thread teacher = new Thread(new Teacher());
+        teacher.start();
+    }
+}
+
+
+class Teacher implements Runnable {
+
+  
+    static String[][] combinations = {{"Pen", "Question Paper"}, {"Pen", "Paper"}, {"Paper", "Question Paper"}};
+
+    @Override
+    public void run() {
+        while (true) {
+            synchronized (Assignment.table) {
+              
+                int index = (int) (Math.random() * 3);
+                Assignment.table[0] = Teacher.combinations[index][0];
+                Assignment.table[1] = Teacher.combinations[index][1];
+                System.out.println("Teacher placed " + Assignment.table[0] + " and " + Assignment.table[1] + " on the table");
+                Assignment.table.notifyAll();
+            }
+            try {
+               
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+
+class Student implements Runnable {
+
+    String has;
+
+    public Student(String has) {
+        this.has = has;
+        if (has.equals("Paper")) {
+            Assignment.hasPaper = true;
+        } else if (has.equals("Question Paper")) {
+            Assignment.hasQuestionPaper = true;
+        } else if (has.equals("Pen")) {
+            Assignment.hasPen = true;
+        }
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            synchronized (Assignment.table) {
+                try {
+                    
+                    while (Assignment.table[0] == null || Assignment.table[1] == null) {
+                        Assignment.table.wait();
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+               
+                if (has.equals(Assignment.table[0])) {
+                    System.out.println("Student with " + has + " completed the assignment");
+                    Assignment.table[0] = null;
+                } else if (has.equals(Assignment.table[1])) {
+                    System.out.println("Student with " + has + " completed the assignment");
+                    Assignment.table[1] = null;
+                } else {
+                    
+                    try {
+                        Assignment.table.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                Assignment.table.notifyAll();
+            }
+            try {
+                
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
